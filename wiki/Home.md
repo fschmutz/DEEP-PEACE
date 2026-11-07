@@ -1,35 +1,23 @@
-# ScaleMeNow GitHub template
+# Deep Peace
 
-This wiki is the documentation surface for repositories created from
+Deep Peace is a zero-dependency, low-frequency yoga sound app: one `index.html`
+on the Web Audio API, served by GitHub Pages at
+<https://fschmutz.github.io/DEEP-PEACE/>. The repository was created from
 [`ScaleMeNow/GITHUB-TEMPLATE`](https://github.com/ScaleMeNow/GITHUB-TEMPLATE).
 
 > **This wiki is generated.** Every page here is a file in the `wiki/` directory
-> of the repository, published by `.github/workflows/wiki.yml` on each push to
-> the default branch. **Edits made in the GitHub wiki UI are overwritten** by the
-> next sync.
-> To change a page, edit the matching file in `wiki/` and open a pull request.
+> of the repository, published by `.github/workflows/wiki.yml`. Edits made in the
+> GitHub wiki UI are overwritten by the next sync.
 
 ## Start here
 
-- **[Getting Started](Getting-Started)** — create a repository from the template,
-  replace the placeholders, and get CI green.
-- **[Bundles](Bundles)** — what runs on day one, what ships switched off, and
-  how to turn each one on or remove it.
-- **[Architecture Decisions](Architecture-Decisions)** — why the repository is
-  shaped this way, and what the alternatives were.
+- **[Getting Started](Getting-Started)** — how repositories from the template are set up.
+- **[Bundles](Bundles)** — what runs on day one and what ships switched off.
+- **[Architecture Decisions](Architecture-Decisions)** — why the repository is shaped this way.
 
 ## Screenshots
 
-What a repository made from the template looks like on day one, captured from
-the repository's own files by `scripts/screenshots/capture.sh`. A repository
-made from the template replaces them with its own — screenshots are mandatory,
-see [ADR-0002](ADR/0002-Screenshots-Are-Mandatory).
-
-![The README rendered as GitHub shows it: hero, badges, purpose line, and the start of the contents](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/raw/main/docs/screenshots/readme.png)
-
-![The bug report issue form, drawn field by field from .github/ISSUE_TEMPLATE/bug.yml](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/raw/main/docs/screenshots/issue-form-bug.png)
-
-![The pull request template as it appears in a new pull request: What, Kind, Checklist](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/raw/main/docs/screenshots/pull-request-template.png)
+![The Deep Peace app on a phone: breathing circle reading Ready 20:00, four sound presets, duration buttons and a volume slider](https://github.com/fschmutz/DEEP-PEACE/raw/main/docs/screenshots/app.png)
 
 ## How this wiki works
 
@@ -74,9 +62,9 @@ unmaintained one is the one people find.
 Some documents stay in the repository rather than the wiki, because GitHub renders
 them in the interface where they matter:
 
-- [`README.md`](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/blob/main/README.md) — what this is and how to use the template
-- [`CONTRIBUTING.md`](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/blob/main/CONTRIBUTING.md) — branch, commit, and pull request conventions
-- [`AGENTS.md`](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/blob/main/AGENTS.md) — the same conventions, as a contract for AI assistants
-- [`SECURITY.md`](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/blob/main/SECURITY.md) — how to report a vulnerability privately
-- [`SUPPORT.md`](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/blob/main/SUPPORT.md) — where to ask a question that is not a vulnerability
-- [`CHANGELOG.md`](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/blob/main/CHANGELOG.md) — what changed and when
+- [`README.md`](https://github.com/fschmutz/DEEP-PEACE/blob/main/README.md) — what this is and how to use the template
+- [`CONTRIBUTING.md`](https://github.com/fschmutz/DEEP-PEACE/blob/main/CONTRIBUTING.md) — branch, commit, and pull request conventions
+- [`AGENTS.md`](https://github.com/fschmutz/DEEP-PEACE/blob/main/AGENTS.md) — the same conventions, as a contract for AI assistants
+- [`SECURITY.md`](https://github.com/fschmutz/DEEP-PEACE/blob/main/SECURITY.md) — how to report a vulnerability privately
+- [`SUPPORT.md`](https://github.com/fschmutz/DEEP-PEACE/blob/main/SUPPORT.md) — where to ask a question that is not a vulnerability
+- [`CHANGELOG.md`](https://github.com/fschmutz/DEEP-PEACE/blob/main/CHANGELOG.md) — what changed and when

@@ -4,9 +4,9 @@ Where to take a question, in the order that gets you an answer fastest.
 
 ## 1. Read the wiki
 
-The [wiki](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/wiki) is the source
+The [wiki](https://github.com/fschmutz/DEEP-PEACE/wiki) is the source
 of truth for how this repository works.
-[Getting Started](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/wiki/Getting-Started)
+[Getting Started](https://github.com/fschmutz/DEEP-PEACE/wiki/Getting-Started)
 covers setup end to end, and it is where the non-obvious steps are written down
 — the two manual steps the wiki sync needs, and why a ruleset does not apply
 itself.

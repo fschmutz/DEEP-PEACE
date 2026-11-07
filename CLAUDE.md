@@ -70,7 +70,7 @@ themselves. Four things tie them together, and each spans several files.
 `scripts/apply-ruleset.sh` defaults to a plan; `--apply` changes live branch
 protection and is the owner's step, never CI's and never yours unprompted.
 
-Anything that names `ScaleMeNow/GITHUB-TEMPLATE` is a placeholder a clone must
+Anything that names `fschmutz/DEEP-PEACE` is a placeholder a clone must
 swap. A new file carrying it gets a row in the README's _Replace the
 placeholders_ table.
 

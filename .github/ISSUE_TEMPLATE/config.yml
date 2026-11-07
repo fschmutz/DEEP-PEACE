@@ -1,21 +1,21 @@
 # Blank issues are disabled so every report arrives in a shape someone can
-# triage. Replace ScaleMeNow/GITHUB-TEMPLATE with OWNER/REPO when you create
+# triage. Replace fschmutz/DEEP-PEACE with OWNER/REPO when you create
 # a repository from this template.
 blank_issues_enabled: false
 
 contact_links:
   - name: Documentation (wiki)
-    url: https://github.com/ScaleMeNow/GITHUB-TEMPLATE/wiki
+    url: https://github.com/fschmutz/DEEP-PEACE/wiki
     about: Read the wiki first — it is the source of truth for how this repository works.
 
   - name: Getting started
-    url: https://github.com/ScaleMeNow/GITHUB-TEMPLATE/wiki/Getting-Started
+    url: https://github.com/fschmutz/DEEP-PEACE/wiki/Getting-Started
     about: Setup, conventions, and the first things to do in a repository made from this template.
 
   - name: Report a security vulnerability
-    url: https://github.com/ScaleMeNow/GITHUB-TEMPLATE/security/policy
+    url: https://github.com/fschmutz/DEEP-PEACE/security/policy
     about: Never report a vulnerability in an issue. Email the owner (private repositories) or use private reporting (public ones).
 
   - name: Contributing guide
-    url: https://github.com/ScaleMeNow/GITHUB-TEMPLATE/blob/main/CONTRIBUTING.md
+    url: https://github.com/fschmutz/DEEP-PEACE/blob/main/CONTRIBUTING.md
     about: Branch, commit, and pull request conventions before you open one.

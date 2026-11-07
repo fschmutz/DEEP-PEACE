@@ -8,7 +8,7 @@ body:
       value: |
         **Do not report a security vulnerability here.** Use private reporting or
         email — see the
-        [security policy](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/security/policy).
+        [security policy](https://github.com/fschmutz/DEEP-PEACE/security/policy).
 
         Never paste credentials, tokens, or customer identifiers into an issue.
         Redact before you submit.
