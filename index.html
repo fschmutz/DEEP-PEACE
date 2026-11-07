@@ -4,34 +4,48 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d1117">
+<meta name="description" content="Low-frequency drone, soft noise and a breathing guide.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deep Peace">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Deep Peace</title>
 <style>
   :root{--bg:#0d1117;--card:#161b22;--line:#2a313c;--txt:#e6edf3;--sub:#8b949e;--acc:#7fb6a4;--accs:rgba(127,182,164,.15)}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;background:radial-gradient(ellipse at top,#16222a 0%,var(--bg) 70%);color:var(--txt);font-family:-apple-system,system-ui,Roboto,sans-serif;min-height:100%}
-  main{max-width:560px;margin:0 auto;padding:24px 18px calc(32px + env(safe-area-inset-bottom))}
+  html,body{margin:0;background:radial-gradient(ellipse at top,#16222a 0%,var(--bg) 70%);background-color:var(--bg);color:var(--txt);font-family:-apple-system,system-ui,Roboto,sans-serif;min-height:100%}
+  main{max-width:560px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) 18px calc(32px + env(safe-area-inset-bottom))}
   h1{font-weight:500;font-size:26px;margin:4px 0 2px;letter-spacing:.3px}
-  .sub{color:var(--sub);font-size:14px;margin:0 0 18px}
-  .circle-wrap{display:flex;justify-content:center;margin:8px 0 20px}
-  svg{width:min(78vw,300px);height:auto}
+  .sub{color:var(--sub);font-size:14px;margin:0 0 14px}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .circle-wrap{display:flex;justify-content:center;margin:4px 0 16px}
+  svg{width:min(74vw,290px);height:auto}
   .presets{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
   .preset{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:left;color:var(--txt);font:inherit}
   .preset b{display:block;font-weight:500;font-size:15px;margin-bottom:3px}
   .preset span{color:var(--sub);font-size:12px;line-height:1.35}
-  .preset.on{border-color:var(--acc);background:var(--accs)}
-  label{display:block;color:var(--sub);font-size:13px;margin:0 0 8px}
-  .row{margin-bottom:18px}
+  .preset.on,.t.on{border-color:var(--acc);background:var(--accs)}
+  label,.lbl{display:block;color:var(--sub);font-size:13px;margin:0 0 8px}
+  .row{margin-bottom:16px}
   .times{display:flex;flex-wrap:wrap;gap:8px}
   .t{flex:1 0 calc(33% - 8px);background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:10px 0;font:inherit;font-size:14px}
-  .t.on{border-color:var(--acc);background:var(--accs)}
-  input[type=range]{width:100%;accent-color:var(--acc);height:28px}
-  .go{width:100%;border:0;border-radius:16px;padding:16px;font:inherit;font-size:17px;font-weight:600;background:var(--acc);color:#0b1512}
-  .go.stop{background:var(--card);color:var(--txt);border:1px solid var(--line)}
-  .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+  .t.sm{flex:1 0 calc(25% - 8px)}
+  .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
   .seg button{border:0;background:none;color:var(--sub);font:inherit;font-size:13px;padding:7px 12px}
   .seg button.on{background:var(--accs);color:var(--txt)}
   .seg.wide{display:flex}.seg.wide button{flex:1;padding:10px 0;font-size:14px}
+  input[type=range]{width:100%;accent-color:var(--acc);height:28px}
+  .val{float:right;color:var(--txt)}
+  .go{width:100%;border:0;border-radius:16px;padding:16px;font:inherit;font-size:17px;font-weight:600;background:var(--acc);color:#0b1512}
+  .go.stop{background:var(--card);color:var(--txt);border:1px solid var(--line)}
+  details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:16px}
+  summary{cursor:pointer;color:var(--txt);font-size:14px}
+  details .row:first-of-type{margin-top:14px}
+  details .row:last-child{margin-bottom:4px}
+  .hidden{display:none}
   .note{color:var(--sub);font-size:12px;text-align:center;margin-top:14px;line-height:1.5}
 </style>
 </head>
@@ -44,127 +58,247 @@
       <circle cx="150" cy="150" r="140" fill="none" stroke="#2a313c" stroke-width="1"/>
       <circle id="glow" cx="150" cy="150" r="70" fill="rgba(127,182,164,.12)"/>
       <circle id="orb" cx="150" cy="150" r="60" fill="rgba(127,182,164,.28)" stroke="#7fb6a4" stroke-width="1.5"/>
-      <text id="cue" x="150" y="146" text-anchor="middle" fill="#e6edf3" font-size="18">Ready</text>
+      <text id="cue" x="150" y="146" text-anchor="middle" fill="#e6edf3" font-size="18"></text>
       <text id="clock" x="150" y="172" text-anchor="middle" fill="#8b949e" font-size="14">20:00</text>
     </svg>
   </div>
   <div class="presets" id="presets"></div>
-  <div class="row"><label id="lMode"></label><div class="seg wide" id="mode"><button data-m="breath"></button><button data-m="steady"></button></div></div>
-  <div class="row"><label id="lDur"></label><div class="times" id="times"></div></div>
-  <div class="row"><label id="lVol"></label><input type="range" id="vol" min="0" max="1" step="0.01" value="0.6"></div>
+  <div class="row"><span class="lbl" id="lMode"></span><div class="seg wide" id="mode"><button data-m="breath"></button><button data-m="steady"></button></div></div>
+  <div class="row" id="paceRow"><label for="pace"><span id="lPace"></span><span class="val" id="paceVal"></span></label><input type="range" id="pace" min="4" max="8" step="0.5"></div>
+  <div class="row" id="ratioRow"><span class="lbl" id="lRatio"></span><div class="seg wide" id="ratio"><button data-r="1">1:1</button><button data-r="1.5">1:1.5</button><button data-r="2">1:2</button></div></div>
+  <div class="row"><span class="lbl" id="lDur"></span><div class="times" id="times"></div></div>
+  <details id="more">
+    <summary id="lMore"></summary>
+    <div class="row"><span class="lbl" id="lBells"></span><div class="seg wide" id="bells"><button data-v="on"></button><button data-v="off"></button></div></div>
+    <div class="row" id="ivRow"><span class="lbl" id="lIv"></span><div class="seg wide" id="iv"><button data-v="0"></button><button data-v="5">5 min</button><button data-v="10">10 min</button></div></div>
+    <div class="row"><span class="lbl" id="lFade"></span><div class="seg wide" id="fade"><button data-v="0"></button><button data-v="5">5 min</button><button data-v="10">10 min</button></div></div>
+  </details>
+  <div class="row"><label for="vol" id="lVol"></label><input type="range" id="vol" min="0" max="1" step="0.01" value="0.6"></div>
   <button class="go" id="go"></button>
   <p class="note" id="note"></p>
 </main>
+<audio id="out" playsinline webkit-playsinline preload="none"></audio>
 <script>
+'use strict';
 const PRESETS=[
-  {id:'peace',base:108,beat:6,noise:.15,breath:10},
-  {id:'om',base:136.1,beat:7.83,noise:.08,breath:12},
-  {id:'nidra',base:72,beat:2.5,noise:.2,breath:14},
-  {id:'ocean',base:96,beat:4,noise:.55,breath:11},
+  {id:'peace',base:108,beat:6,noise:.15},
+  {id:'om',base:136.1,beat:7.83,noise:.08},
+  {id:'nidra',base:72,beat:2.5,noise:.2},
+  {id:'ocean',base:96,beat:4,noise:.55},
 ];
 const I18N={
- en:{sub:'Low-frequency drone, binaural beat and soft breath. Use headphones.',subS:'Low-frequency drone and soft, constant sound. No pulsing, no variation.',mode:'Sound',breath:'Breathing',steady:'Steady',dur:'Duration',vol:'Volume',begin:'Begin',stop:'Stop',ready:'Ready',inh:'Breathe in',exh:'Breathe out',still:'Steady',end:'Namaste',min:'min',
-  note:'Keep this page open while it plays. On iPhone, switch off silent mode so sound comes through.',
-  p:{peace:['Deep peace','108 Hz drone, harmonics up to 432 Hz, 6 Hz theta'],om:['Om','136.1 Hz Om tone, 7.83 Hz beat'],nidra:['Yoga nidra','72 Hz drone, 2.5 Hz delta, for deep rest'],ocean:['Ocean breath','96 Hz drone, 4 Hz beat, ocean wash']},
+ en:{sub:'Low-frequency drone, binaural beat and soft breath. Headphones recommended.',subS:'Low-frequency drone and a soft, constant sound. No pulsing, no variation.',mode:'Sound',breath:'Breathing',steady:'Steady',pace:'Breathing pace',perMin:'breaths/min',reso:'· slow pace',ratio:'Inhale : exhale',dur:'Duration',more:'Bells and ending',bells:'Singing bowl at start and end',on:'On',off:'Off',iv:'Interval bell',fade:'Slow fade at the end',vol:'Volume',begin:'Begin',stop:'Stop',ready:'Ready',inh:'Breathe in',exh:'Breathe out',still:'Steady',end:'Namaste',min:'min',
+  note:'Playback continues with the screen locked on most phones. On iPhone, add it to the Home Screen for the best experience.',
+  p:{peace:['Deep peace','108 Hz drone, harmonics up to 432 Hz, 6 Hz beat'],om:['Om','136.1 Hz Om tone, 7.83 Hz beat'],nidra:['Yoga nidra','72 Hz drone, 2.5 Hz beat, for deep rest'],ocean:['Ocean breath','96 Hz drone, 4 Hz beat, ocean wash']},
   pS:{peace:'108 Hz drone, harmonics up to 432 Hz',om:'136.1 Hz Om tone',nidra:'72 Hz drone, for deep rest',ocean:'96 Hz drone, steady ocean wash'}},
- fr:{sub:'Bourdon grave, battement binaural et souffle doux. Utilisez un casque.',subS:'Bourdon grave et son doux et constant. Sans pulsation, sans variation.',mode:'Son',breath:'Respiration',steady:'Stable',dur:'Durée',vol:'Volume',begin:'Commencer',stop:'Arrêter',ready:'Prêt',inh:'Inspirez',exh:'Expirez',still:'Stable',end:'Namaste',min:'min',
-  note:'Gardez cette page ouverte pendant l’écoute. Sur iPhone, désactivez le mode silencieux pour entendre le son.',
-  p:{peace:['Paix profonde','Bourdon 108 Hz, harmoniques jusqu’à 432 Hz, thêta 6 Hz'],om:['Om','Note Om 136,1 Hz, battement 7,83 Hz'],nidra:['Yoga nidra','Bourdon 72 Hz, delta 2,5 Hz, pour le repos profond'],ocean:['Souffle de l’océan','Bourdon 96 Hz, battement 4 Hz, ressac']},
+ fr:{sub:'Bourdon grave, battement binaural et souffle doux. Casque conseillé.',subS:'Bourdon grave et son doux et constant. Sans pulsation, sans variation.',mode:'Son',breath:'Respiration',steady:'Stable',pace:'Rythme respiratoire',perMin:'resp./min',reso:'· rythme lent',ratio:'Inspiration : expiration',dur:'Durée',more:'Bols et fin de séance',bells:'Bol chantant au début et à la fin',on:'Oui',off:'Non',iv:'Bol à intervalles',fade:'Fondu lent à la fin',vol:'Volume',begin:'Commencer',stop:'Arrêter',ready:'Prêt',inh:'Inspirez',exh:'Expirez',still:'Stable',end:'Namaste',min:'min',
+  note:'Le son continue écran verrouillé sur la plupart des téléphones. Sur iPhone, ajoutez l’app à l’écran d’accueil pour un meilleur résultat.',
+  p:{peace:['Paix profonde','Bourdon 108 Hz, harmoniques jusqu’à 432 Hz, battement 6 Hz'],om:['Om','Note Om 136,1 Hz, battement 7,83 Hz'],nidra:['Yoga nidra','Bourdon 72 Hz, battement 2,5 Hz, pour le repos profond'],ocean:['Souffle de l’océan','Bourdon 96 Hz, battement 4 Hz, ressac']},
   pS:{peace:'Bourdon 108 Hz, harmoniques jusqu’à 432 Hz',om:'Note Om 136,1 Hz',nidra:'Bourdon 72 Hz, pour le repos profond',ocean:'Bourdon 96 Hz, ressac constant'}}
 };
-const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
-let lang=store.get('dp-lang')||((navigator.language||'en').toLowerCase().startsWith('fr')?'fr':'en');
-let mode=store.get('dp-mode')==='steady'?'steady':'breath';
-const T=()=>I18N[lang], steady=()=>mode==='steady';
 const TIMES=[5,10,20,30,45,60];
-let preset=PRESETS[0], minutes=20, ctx=null, nodes=null, running=false, endAt=0, t0=0, raf=0, wake=null;
-const $=id=>document.getElementById(id);
-function renderPresets(){
-  $('presets').innerHTML=PRESETS.map(p=>`<button class="preset ${p===preset?'on':''}" data-id="${p.id}"><b>${T().p[p.id][0]}</b><span>${steady()?T().pS[p.id]:T().p[p.id][1]}</span></button>`).join('');
-  $('presets').querySelectorAll('button').forEach(b=>b.onclick=()=>{preset=PRESETS.find(p=>p.id===b.dataset.id);renderPresets();if(running){stop(true);start();}});
-}
-function renderTimes(){
-  $('times').innerHTML=TIMES.map(m=>`<button class="t ${m===minutes?'on':''}" data-m="${m}">${m} ${T().min}</button>`).join('');
-  $('times').querySelectorAll('button').forEach(b=>b.onclick=()=>{minutes=+b.dataset.m;renderTimes();if(running)endAt=performance.now()+minutes*60000;else $('clock').textContent=fmt(minutes*60);});
-}
+const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+const S={
+  lang:store.get('dp-lang')||((navigator.language||'en').toLowerCase().startsWith('fr')?'fr':'en'),
+  mode:store.get('dp-mode')==='steady'?'steady':'breath',
+  pace:+(store.get('dp-pace')||6), ratio:+(store.get('dp-ratio')||1.5),
+  bells:store.get('dp-bells')!=='off', iv:+(store.get('dp-iv')||0), fade:+(store.get('dp-fade')||0),
+  preset:PRESETS.find(p=>p.id===store.get('dp-preset'))||PRESETS[0], minutes:+(store.get('dp-min')||20)
+};
+if(!(S.pace>=4&&S.pace<=8))S.pace=6; if(![1,1.5,2].includes(S.ratio))S.ratio=1.5; if(!TIMES.includes(S.minutes))S.minutes=20;
+const $=id=>document.getElementById(id), T=()=>I18N[S.lang], steady=()=>S.mode==='steady';
+const out=$('out');
+let ctx=null, vol=null, sink=null, streamOk=false, sess=null, running=false, raf=0, wake=null, endTimer=0, finished=false;
 const fmt=s=>{s=Math.max(0,Math.ceil(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
-function build(){
-  ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();
-  const p=preset, now=ctx.currentTime;
-  const master=ctx.createGain(); master.gain.setValueAtTime(0,now);
-  master.gain.linearRampToValueAtTime(+$('vol').value,now+4);
-  master.connect(ctx.destination);
-  const merger=ctx.createChannelMerger(2);
-  const bg=ctx.createGain(); bg.gain.value=.22; merger.connect(bg); bg.connect(master);
+const breathTimes=()=>{const cyc=60/S.pace, inh=cyc/(1+S.ratio);return {cyc,inh,exh:cyc-inh}};
+
+// ---- Audio output (R1): Web Audio -> MediaStream -> <audio>, so iOS keeps playing with the screen locked.
+function setupAudio(){
+  if(ctx) return;
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
+  vol=ctx.createGain(); vol.gain.value=+$('vol').value;
+  if(ctx.createMediaStreamDestination && 'srcObject' in out){
+    sink=ctx.createMediaStreamDestination(); vol.connect(sink); out.srcObject=sink.stream; streamOk=true;
+  } else vol.connect(ctx.destination);
+  ctx.onstatechange=()=>{ if(running&&ctx.state!=='running') ctx.resume().catch(()=>{}); };
+  out.addEventListener('pause',()=>{ if(running&&!document.hidden) out.play().catch(()=>{}); });
+}
+async function ensurePlaying(){
+  if(ctx.state!=='running') await ctx.resume().catch(()=>{});
+  if(streamOk){
+    try{ await out.play(); }
+    catch(e){ // stream element refused: fall back to direct output
+      try{vol.disconnect();}catch(_){} vol.connect(ctx.destination); streamOk=false; }
+  }
+}
+
+// ---- Singing bowl (R5): inharmonic partials with slow beating pairs and long decay.
+function bell(t,level){
+  const f0=S.preset.base*2, g=ctx.createGain(); g.gain.value=level; g.connect(vol);
+  [[1,1],[2.71,.5],[5.13,.28],[8.27,.14],[11.9,.07]].forEach(([r,a],i)=>{
+    [0,1.2+i*.6].forEach((d,k)=>{
+      const o=ctx.createOscillator(), e=ctx.createGain(); o.frequency.value=f0*r+(k?d:0);
+      e.gain.setValueAtTime(0,t); e.gain.linearRampToValueAtTime(a*.5,t+.015);
+      e.gain.exponentialRampToValueAtTime(.0001,t+(9-i*1.3));
+      o.connect(e).connect(g); o.start(t); o.stop(t+9.2);
+    });
+  });
+}
+
+// ---- Session graph.
+function build(durSec,first){
+  const p=S.preset, now=ctx.currentTime, st=steady();
+  const env=ctx.createGain(); env.connect(vol);
+  env.gain.setValueAtTime(0,now); env.gain.linearRampToValueAtTime(1,now+4);
+  const fadeLen=S.fade>0?Math.min(S.fade*60,durSec*.8):3, fadeAt=now+Math.max(4,durSec-fadeLen);
+  env.gain.setValueAtTime(1,fadeAt); env.gain.linearRampToValueAtTime(0.0001,now+durSec);
+  const merger=ctx.createChannelMerger(2), bg=ctx.createGain(); bg.gain.value=.22; merger.connect(bg).connect(env);
   const L=ctx.createOscillator(), R=ctx.createOscillator();
-  L.frequency.value=p.base; R.frequency.value=steady()?p.base:p.base+p.beat;
-  const lg=ctx.createGain(), rg=ctx.createGain(); lg.gain.value=rg.gain.value=1;
-  L.connect(lg).connect(merger,0,0); R.connect(rg).connect(merger,0,1);
+  L.frequency.value=p.base; R.frequency.value=st?p.base:p.base+p.beat;
+  L.connect(merger,0,0); R.connect(merger,0,1);
   const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=700; lp.Q.value=.5;
-  const pad=ctx.createGain(); pad.gain.value=.12; lp.connect(pad).connect(master);
-  const oscs=[L,R];
+  const pad=ctx.createGain(); pad.gain.value=.12; lp.connect(pad).connect(env);
+  const srcs=[L,R];
   [[1,.5],[1.5,.25],[2,.3],[3,.12],[4,.08]].forEach(([m,g],i)=>{
-    const o=ctx.createOscillator(); o.type=i%2?'triangle':'sine'; o.frequency.value=p.base*m; o.detune.value=steady()?0:(i-2)*3;
-    const og=ctx.createGain(); og.gain.value=g; o.connect(og).connect(lp); oscs.push(o);
+    const o=ctx.createOscillator(); o.type=i%2?'triangle':'sine'; o.frequency.value=p.base*m; o.detune.value=st?0:(i-2)*3;
+    const og=ctx.createGain(); og.gain.value=g; o.connect(og).connect(lp); srcs.push(o);
   });
   const len=ctx.sampleRate*4, buf=ctx.createBuffer(2,len,ctx.sampleRate);
   for(let c=0;c<2;c++){const d=buf.getChannelData(c);let last=0;for(let i=0;i<len;i++){last=(last+.02*(Math.random()*2-1))/1.02;d[i]=last*3.5;}}
   const ns=ctx.createBufferSource(); ns.buffer=buf; ns.loop=true;
-  const nf=ctx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=500;
-  const ng=ctx.createGain(); ng.gain.value=p.noise*.5;
-  ns.connect(nf).connect(ng).connect(master);
-  if(!steady()){
-  const lfo=ctx.createOscillator(); lfo.frequency.value=1/p.breath;
-  const lfoG=ctx.createGain(); lfoG.gain.value=p.noise*.45; lfo.connect(lfoG).connect(ng.gain);
-  const lfoF=ctx.createGain(); lfoF.gain.value=250; lfo.connect(lfoF).connect(nf.frequency);
-  oscs.push(lfo);
+  const nf=ctx.createBiquadFilter(); nf.type='lowpass';
+  const ng=ctx.createGain(); ns.connect(nf).connect(ng).connect(env); srcs.push(ns);
+  const lo=p.noise*.1, hi=p.noise*.95;
+  if(st){ ng.gain.value=p.noise*.5; nf.frequency.value=500; }
+  else { // R4: pacer swell scheduled on the audio clock, so it keeps going with the screen locked.
+    const {cyc,inh}=breathTimes(); let t=now;
+    ng.gain.setValueAtTime(lo,t); nf.frequency.setValueAtTime(300,t);
+    while(t<now+durSec){
+      ng.gain.linearRampToValueAtTime(hi,t+inh); nf.frequency.linearRampToValueAtTime(750,t+inh);
+      ng.gain.linearRampToValueAtTime(lo,t+cyc); nf.frequency.linearRampToValueAtTime(300,t+cyc);
+      t+=cyc;
+    }
   }
-  oscs.forEach(o=>o.start(now)); ns.start(now); oscs.push(ns);
-  nodes={master,oscs};
+  srcs.forEach(o=>{o.start(now);o.stop(now+durSec+.5);});
+  if(S.bells){
+    if(first) bell(now+.3,.35);
+    if(S.iv>0) for(let k=S.iv*60;k<durSec-30;k+=S.iv*60) bell(now+k,.22);
+    if(first||durSec>30) bell(now+durSec-.2,.35);
+  }
+  return {env,srcs,t0:now};
 }
-async function start(){
-  build(); if(ctx.state==='suspended') await ctx.resume();
-  running=true; t0=performance.now(); endAt=t0+minutes*60000;
+function teardown(quick){
+  if(!sess) return;
+  const now=ctx.currentTime, f=quick?.4:3, g=sess.env.gain;
+  g.cancelScheduledValues(now); g.setValueAtTime(g.value,now); g.linearRampToValueAtTime(0,now+f);
+  sess.srcs.forEach(o=>{try{o.stop(now+f+.1)}catch(e){}});
+  sess=null;
+}
+
+// ---- Session control.
+let endAt=0, t0=0, ph0=0;
+async function start(restart){
+  setupAudio();
+  const remaining=restart?Math.max(5,(endAt-performance.now())/1000):S.minutes*60;
+  if(!restart){ t0=performance.now(); endAt=t0+S.minutes*60000; finished=false; }
+  await ensurePlaying();
+  sess=build(remaining,!restart); ph0=performance.now(); running=true;
+  clearTimeout(endTimer); endTimer=setTimeout(finish,remaining*1000+300);
   $('go').textContent=T().stop; $('go').classList.add('stop');
-  try{ if('wakeLock' in navigator) wake=await navigator.wakeLock.request('screen'); }catch(e){}
-  loop();
+  mediaSession(true);
+  try{ if('wakeLock' in navigator&&!wake) wake=await navigator.wakeLock.request('screen'); }catch(e){}
+  cancelAnimationFrame(raf); loop();
 }
 function stop(quick){
-  if(!nodes) return;
-  const {master,oscs}=nodes, now=ctx.currentTime, f=quick?.4:3;
-  master.gain.cancelScheduledValues(now); master.gain.setValueAtTime(master.gain.value,now);
-  master.gain.linearRampToValueAtTime(0,now+f);
-  oscs.forEach(o=>{try{o.stop(now+f+.1)}catch(e){}});
-  nodes=null; running=false; cancelAnimationFrame(raf);
+  teardown(quick); running=false; clearTimeout(endTimer); cancelAnimationFrame(raf);
   $('go').textContent=T().begin; $('go').classList.remove('stop');
-  $('cue').textContent=T().ready; $('clock').textContent=fmt(minutes*60);
+  $('cue').textContent=finished?T().end:T().ready; $('clock').textContent=fmt(S.minutes*60);
   $('orb').setAttribute('r',60); $('glow').setAttribute('r',70);
   if(wake){wake.release().catch(()=>{});wake=null;}
+  mediaSession(false);
+  if(streamOk&&!quick) setTimeout(()=>{ if(!running) out.pause(); },3500);
 }
+function finish(){ finished=true; stop(false); }
+function restartIfRunning(){ if(running){ teardown(true); start(true); } }
 function loop(){
   const t=performance.now(), left=(endAt-t)/1000;
-  if(left<=0){stop(false);$('cue').textContent=T().end;return;}
-  if(steady()){$('orb').setAttribute('r',60);$('glow').setAttribute('r',70);$('cue').textContent=T().still;}
-  else{const ph=((t-t0)/1000%preset.breath)/preset.breath, s=(1-Math.cos(ph*2*Math.PI))/2;
-  $('orb').setAttribute('r',55+60*s); $('glow').setAttribute('r',65+70*s);
-  $('cue').textContent=ph<.5?T().inh:T().exh;}
+  if(left<=0) return;
+  if(steady()){ $('orb').setAttribute('r',60); $('glow').setAttribute('r',70); $('cue').textContent=T().still; }
+  else {
+    const {cyc,inh}=breathTimes(), ph=((t-ph0)/1000)%cyc;
+    const s=ph<inh?(1-Math.cos(Math.PI*ph/inh))/2:(1+Math.cos(Math.PI*(ph-inh)/(cyc-inh)))/2;
+    $('orb').setAttribute('r',55+60*s); $('glow').setAttribute('r',65+70*s);
+    $('cue').textContent=ph<inh?T().inh:T().exh;
+  }
   $('clock').textContent=fmt(left);
   raf=requestAnimationFrame(loop);
 }
-$('go').onclick=()=>running?stop(false):start();
-$('vol').oninput=e=>{if(nodes){nodes.master.gain.cancelScheduledValues(ctx.currentTime);nodes.master.gain.setTargetAtTime(+e.target.value,ctx.currentTime,.1);}};
-document.addEventListener('visibilitychange',async()=>{if(running&&document.visibilityState==='visible'&&'wakeLock' in navigator){try{wake=await navigator.wakeLock.request('screen')}catch(e){}}});
-function applyText(){
-  const t=T(); document.documentElement.lang=lang;
-  $('sub').textContent=steady()?t.subS:t.sub; $('lMode').textContent=t.mode; $('lDur').textContent=t.dur; $('lVol').textContent=t.vol; $('note').textContent=t.note;
-  $('go').textContent=running?t.stop:t.begin; if(!running&&$('cue').textContent!==I18N.en.end&&$('cue').textContent!==I18N.fr.end)$('cue').textContent=t.ready;
-  $('lang').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));
-  $('mode').querySelectorAll('button').forEach(b=>{b.textContent=t[b.dataset.m];b.classList.toggle('on',b.dataset.m===mode);});
-  renderPresets(); renderTimes();
+
+// ---- Media Session (R2).
+function mediaSession(on){
+  if(!('mediaSession' in navigator)) return;
+  const ms=navigator.mediaSession;
+  try{
+    ms.metadata=new MediaMetadata({title:'Deep Peace',artist:T().p[S.preset.id][0]+' · '+T()[S.mode],album:'Deep Peace',
+      artwork:[{src:'icons/icon-192.png',sizes:'192x192',type:'image/png'},{src:'icons/icon-512.png',sizes:'512x512',type:'image/png'}]});
+    ms.playbackState=on?'playing':'paused';
+    if(on&&ms.setPositionState){ const d=(endAt-t0)/1000; ms.setPositionState({duration:d,position:Math.min(d,(performance.now()-t0)/1000),playbackRate:1}); }
+  }catch(e){}
 }
-$('lang').querySelectorAll('button').forEach(b=>b.onclick=()=>{lang=b.dataset.l;store.set('dp-lang',lang);applyText();});
-$('mode').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(mode===b.dataset.m)return;mode=b.dataset.m;store.set('dp-mode',mode);applyText();if(running){const e=endAt;stop(true);start().then(()=>{endAt=e;});}});
-applyText(); $('clock').textContent=fmt(minutes*60);
+if('mediaSession' in navigator){
+  const h=(a,f)=>{try{navigator.mediaSession.setActionHandler(a,f)}catch(e){}};
+  h('play',()=>{ if(!running) start(false); });
+  h('pause',()=>{ if(running) stop(false); });
+  h('stop',()=>{ if(running) stop(false); });
+}
+
+// ---- UI.
+function seg(id,attr,val,fn){ $(id).querySelectorAll('button').forEach(b=>{ b.classList.toggle('on',b.dataset[attr]===String(val)); b.onclick=()=>fn(b.dataset[attr]); }); }
+function render(){
+  const t=T(); document.documentElement.lang=S.lang;
+  $('sub').textContent=steady()?t.subS:t.sub;
+  ['lMode','mode','lPace','pace','lRatio','ratio','lDur','dur','lMore','more','lBells','bells','lIv','iv','lFade','fade','lVol','vol'].forEach((k,i,a)=>{ if(i%2===0) $(k).textContent=t[a[i+1]]; });
+  $('note').textContent=t.note; $('go').textContent=running?t.stop:t.begin;
+  if(!running) $('cue').textContent=finished?t.end:t.ready;
+  $('paceVal').textContent=String(S.pace).replace('.',S.lang==='fr'?',':'.')+' '+t.perMin+(S.pace===6?' '+t.reso:'');
+  $('pace').value=S.pace;
+  $('paceRow').classList.toggle('hidden',steady()); $('ratioRow').classList.toggle('hidden',steady());
+  $('ivRow').classList.toggle('hidden',!S.bells);
+  $('mode').querySelectorAll('button').forEach(b=>b.textContent=t[b.dataset.m]);
+  $('bells').querySelectorAll('button').forEach(b=>b.textContent=t[b.dataset.v]);
+  $('iv').querySelector('[data-v="0"]').textContent=t.off; $('fade').querySelector('[data-v="0"]').textContent=t.off;
+  seg('lang','l',S.lang,v=>{S.lang=v;store.set('dp-lang',v);render();mediaSession(running);});
+  seg('mode','m',S.mode,v=>{if(v===S.mode)return;S.mode=v;store.set('dp-mode',v);render();restartIfRunning();});
+  seg('ratio','r',S.ratio,v=>{S.ratio=+v;store.set('dp-ratio',v);render();restartIfRunning();});
+  seg('bells','v',S.bells?'on':'off',v=>{S.bells=v==='on';store.set('dp-bells',v);render();});
+  seg('iv','v',S.iv,v=>{S.iv=+v;store.set('dp-iv',v);render();restartIfRunning();});
+  seg('fade','v',S.fade,v=>{S.fade=+v;store.set('dp-fade',v);render();restartIfRunning();});
+  $('presets').innerHTML=PRESETS.map(p=>`<button class="preset ${p===S.preset?'on':''}" data-id="${p.id}"><b>${t.p[p.id][0]}</b><span>${steady()?t.pS[p.id]:t.p[p.id][1]}</span></button>`).join('');
+  $('presets').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.preset=PRESETS.find(p=>p.id===b.dataset.id);store.set('dp-preset',S.preset.id);render();restartIfRunning();mediaSession(running);});
+  $('times').innerHTML=TIMES.map(m=>`<button class="t ${m===S.minutes?'on':''}" data-m="${m}">${m} ${t.min}</button>`).join('');
+  $('times').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.minutes=+b.dataset.m;store.set('dp-min',b.dataset.m);render();
+    if(running){endAt=t0+S.minutes*60000; if(endAt-performance.now()<10000) endAt=performance.now()+10000; restartIfRunning();} else $('clock').textContent=fmt(S.minutes*60);});
+}
+$('pace').oninput=e=>{S.pace=+e.target.value;store.set('dp-pace',S.pace);render();};
+$('pace').onchange=()=>restartIfRunning();
+$('go').onclick=()=>running?stop(false):start(false);
+$('vol').oninput=e=>{ if(vol) vol.gain.setTargetAtTime(+e.target.value,ctx.currentTime,.08); };
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState!=='visible'||!running) return;
+  await ensurePlaying();
+  if(performance.now()>=endAt){ finish(); return; }
+  cancelAnimationFrame(raf); loop();
+  if('wakeLock' in navigator){try{wake=await navigator.wakeLock.request('screen')}catch(e){}}
+});
+render(); $('clock').textContent=fmt(S.minutes*60);
+
+// ---- Offline / Home Screen (R3).
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(reloaded||running) return; reloaded=true; location.reload(); });
+}
 </script>
 </body>
 </html>
