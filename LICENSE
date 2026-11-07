@@ -1,0 +1,33 @@
+Copyright (c) 2026 ScaleMeNow SAS. All rights reserved.
+
+PROPRIETARY AND CONFIDENTIAL
+
+This software and the accompanying documentation (the "Work") are the
+proprietary and confidential property of ScaleMeNow SAS and are made available
+to Premaccess SA, its affiliates, and its authorised suppliers and personnel
+solely for internal use in connection with ScaleMeNow and Premaccess
+engagements.
+
+No licence is granted, expressly or by implication, other than the limited
+internal-use permission above. Without the prior written consent of ScaleMeNow
+SAS you may not:
+
+  1. copy, reproduce, publish, or disclose the Work, in whole or in part, to any
+     third party;
+  2. use the Work for the benefit of any party other than ScaleMeNow SAS or
+     Premaccess SA and their customers;
+  3. mirror, fork, or republish the Work on any public host; or
+  4. remove or alter this notice.
+
+Repositories created from this template inherit this notice. If a derived
+repository is intended to be published under an open-source licence, that
+licence must be chosen and this file replaced before the repository is made
+public.
+
+THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL SCALEMENOW SAS BE
+LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE WORK OR THE USE OR OTHER DEALINGS IN THE WORK.
+
+Questions about permitted use: fschmutz@premaccess.com

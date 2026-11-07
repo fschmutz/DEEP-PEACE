@@ -1,0 +1,82 @@
+name: Bug report
+description: Something behaves differently from how it is documented.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Do not report a security vulnerability here.** Use private reporting or
+        email — see the
+        [security policy](https://github.com/ScaleMeNow/GITHUB-TEMPLATE/security/policy).
+
+        Never paste credentials, tokens, or customer identifiers into an issue.
+        Redact before you submit.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happens
+      description: One or two sentences. What you saw, not what you think caused it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: The shortest path from a clean state to the failure.
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs, output, or screenshots
+      description: Redacted. Paste the error verbatim rather than describing it.
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: Where
+      description: Branch, commit, environment, OS, or runner — whatever is relevant.
+      placeholder: "main @ abc1234, ubuntu-latest"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - Blocking — no workaround
+        - Significant — workaround exists but costs time
+        - Minor — cosmetic or rare
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+        - label: No secrets or customer data appear above.
+          required: true

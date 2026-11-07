@@ -1,0 +1,580 @@
+#!/usr/bin/env bash
+#
+# attribution-guard.sh — the author of record is the human who owns the change.
+#
+# An assistant that signs its work leaves three kinds of trace, and this check
+# fails the pull request on all three:
+#
+#   1. Identity. Every commit's author and committer address is on the
+#      allow-list, or the commit belongs to an allow-listed bot. Anything else
+#      is somebody else's name on this repository's history. The *name* beside
+#      the address is checked too, and separately: an allow-listed address
+#      does not make "Cursor Agent", "Claude" or "AI assistant" a person. A
+#      real human whose name collides with one of those words is exempted by a
+#      `name:` entry, which is the only way past this rule.
+#   2. Commit messages. A `Co-authored-by:` trailer naming an address that is
+#      not on the allow-list, or an assistant footer — "Generated with …", a
+#      cursor.com/agents link, a Claude Code attribution, a robot emoji.
+#   3. The pull request title and body. The CURSOR_AGENT_PR_BODY_BEGIN/END
+#      markers, an agent run link, an "Open in …" footer image, or "Generated
+#      with Claude Code". Both are editable after the last push, so both are
+#      re-read from the API when the event action is `edited`.
+#
+# It is deliberately narrow about prose. The bare word "cursor" is a database
+# cursor far more often than it is a tool, so only footer shapes, trailer keys,
+# and URLs count — never a lone word in a sentence.
+#
+# The allow-list, in order of precedence:
+#
+#   .github/attribution-allow.txt   one entry per line, `#` comments
+#   $ATTRIBUTION_ALLOW              the same entries, comma- or newline-separated
+#   fschmutz@premaccess.com         the built-in default, used when neither of
+#                                   the above names a single address
+#
+# A missing or unreadable allow file is a warning, not an error, and the
+# built-in default carries the run: a repository that has not written the file
+# yet still gets a guard, and a guard that failed open on a deleted file would
+# be worth nothing. Both the missing file and the fallback are printed.
+#
+# An entry is a plain address, `committer:ADDRESS` (accepted as the committer
+# only — this is how a GitHub web merge is allowed), `bot:LOGIN`, or
+# `name:FULL NAME` (a person whose name would otherwise read as a tool).
+# Three structural entries are always present and need no configuration:
+# `committer:noreply@github.com`, and the `dependabot[bot]`,
+# `github-actions[bot]` and `renovate[bot]` logins.
+#
+# Usage:
+#   scripts/attribution-guard.sh [-R OWNER/REPO] [--pr NUMBER]
+#   scripts/attribution-guard.sh --commits-file FILE --body-file FILE
+#
+#   -R, --repo OWNER/REPO   default: $GITHUB_REPOSITORY
+#       --pr NUMBER         default: the pull request in $GITHUB_EVENT_PATH
+#       --commits-file F    read the commits from F instead of calling the API;
+#                           F holds what `gh api …/commits --paginate` prints
+#       --allow-file F      read the allow-list from F
+#                           (default: .github/attribution-allow.txt)
+#       --title-file F      read the pull request title from F
+#       --body-file F       read the pull request body from F
+#       --commits-only      skip the title and the body
+#       --refresh-text      re-read the title and body from the API even when
+#                           the event payload carries them (implied by the
+#                           `edited` action)
+#
+# Output:  `::error::` annotations under GitHub Actions, `sha: reason`,
+#          `PR title: reason` and `PR body: reason` otherwise. Exit 0 clean,
+#          1 on a violation, 2 on a usage or environment problem.
+# Needs:   bash 3.2+, jq, and gh only when it has to call the API.
+# Format:  shellcheck clean; shfmt -i 2 -ci clean.
+#
+# This file is generic on purpose: other repositories copy it byte for byte,
+# and point `.github/attribution-allow.txt` at their own owner. Change it here,
+# then copy it again; do not fork it in place.
+#
+set -uo pipefail
+
+readonly DEFAULT_ALLOW_FILE=".github/attribution-allow.txt"
+readonly DEFAULT_EMAIL="fschmutz@premaccess.com"
+readonly DEFAULT_COMMITTER="noreply@github.com"
+readonly DEFAULT_BOTS="dependabot[bot] github-actions[bot] renovate[bot]"
+readonly NOREPLY_HOST="users.noreply.github.com"
+readonly TOOL_NAME_WORDS="cursor claude copilot codex chatgpt gemini devin"
+
+readonly COAUTHOR_RE='^[[:space:]]*co-authored-by[[:space:]]*:'
+readonly EMAIL_RE='<([^<>]+)>'
+readonly TRAILER_RE='^[[:space:]]*(generated-with|generated-by|assisted-by|ai-assisted|cursor-agent|claude-code)[[:space:]]*:'
+
+commits_file=""
+allow_file="${ATTRIBUTION_ALLOW_FILE:-${DEFAULT_ALLOW_FILE}}"
+title_file=""
+body_file=""
+repo="${GITHUB_REPOSITORY:-}"
+pr="${ATTRIBUTION_PR:-}"
+check_text=true
+refresh_text=false
+failures=0
+pr_title=""
+pr_body=""
+
+allow_emails=$'\n'
+allow_committers=$'\n'
+allow_bots=$'\n'
+allow_names=$'\n'
+
+usage() {
+  sed -n '/^# Usage:/,/^# Output:/p' "$0" | sed '$d' | sed 's/^# \{0,1\}//'
+}
+
+die() {
+  echo "attribution-guard: $1" >&2
+  exit 2
+}
+
+lower() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+trim() {
+  local s="$1"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "${s}"
+}
+
+# report WHERE REASON — WHERE is a short sha, "PR title", or "PR body".
+report() {
+  failures=$((failures + 1))
+  if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+    echo "::error title=attribution guard::$1: $2"
+  else
+    echo "$1: $2" >&2
+  fi
+}
+
+info() {
+  if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+    echo "::notice title=attribution guard::$1"
+  else
+    echo "attribution-guard: $1"
+  fi
+}
+
+warn() {
+  if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+    echo "::warning title=attribution guard::$1"
+  else
+    echo "attribution-guard: $1" >&2
+  fi
+}
+
+# --- the allow-list -----------------------------------------------------------
+
+# list_has NEEDLE LIST — LIST is newline-delimited and newline-terminated. The
+# needle is quoted inside the pattern, so `dependabot[bot]` is matched as text
+# rather than as a character class.
+list_has() {
+  case "$2" in
+    *$'\n'"$1"$'\n'*) return 0 ;;
+  esac
+  return 1
+}
+
+allow_add() {
+  local entry
+  entry="$(lower "$(trim "$1")")"
+  case "${entry}" in
+    bot:*) allow_bots="${allow_bots}$(trim "${entry#bot:}")"$'\n' ;;
+    committer:*) allow_committers="${allow_committers}$(trim "${entry#committer:}")"$'\n' ;;
+    name:*) allow_names="${allow_names}$(trim "${entry#name:}")"$'\n' ;;
+    "") ;;
+    *) allow_emails="${allow_emails}${entry}"$'\n' ;;
+  esac
+}
+
+# Reads entries from stdin, one per line, `#` starting a comment.
+allow_read() {
+  local raw line
+  while IFS= read -r raw || [ -n "${raw}" ]; do
+    line="$(trim "${raw%%#*}")"
+    [ -n "${line}" ] || continue
+    allow_add "${line}"
+  done
+}
+
+load_allow_list() {
+  local bot
+  if [ ! -e "${allow_file}" ]; then
+    warn "${allow_file} is missing — write it, one address per line, and commit it"
+  elif [ ! -r "${allow_file}" ]; then
+    warn "${allow_file} is not readable — check its permissions"
+  else
+    allow_read <"${allow_file}"
+  fi
+  if [ -n "${ATTRIBUTION_ALLOW:-}" ]; then
+    allow_read <<<"$(printf '%s' "${ATTRIBUTION_ALLOW}" | tr ',' '\n')"
+  fi
+  if [ "${allow_emails}" = $'\n' ]; then
+    warn "no address configured — falling back to the built-in default, ${DEFAULT_EMAIL}"
+    allow_add "${DEFAULT_EMAIL}"
+  fi
+  allow_add "committer:${DEFAULT_COMMITTER}"
+  for bot in ${DEFAULT_BOTS}; do
+    allow_add "bot:${bot}"
+  done
+}
+
+# login_allowed LOGIN — an allow-listed bot account.
+login_allowed() {
+  local login
+  login="$(lower "$1")"
+  [ -n "${login}" ] || return 1
+  list_has "${login}" "${allow_bots}"
+}
+
+# email_allowed ADDRESS ROLE — ROLE is `author` or `committer`.
+email_allowed() {
+  local email role local_part bot
+  email="$(lower "$1")"
+  role="$2"
+  [ -n "${email}" ] || return 1
+  list_has "${email}" "${allow_emails}" && return 0
+  if [ "${role}" = committer ]; then
+    list_has "${email}" "${allow_committers}" && return 0
+  fi
+  # A bot commits as 49699333+dependabot[bot]@users.noreply.github.com.
+  case "${email}" in
+    *+*@"${NOREPLY_HOST}")
+      local_part="${email#*+}"
+      while IFS= read -r bot; do
+        [ -n "${bot}" ] || continue
+        [ "${local_part}" = "${bot}@${NOREPLY_HOST}" ] && return 0
+      done <<<"${allow_bots}"
+      ;;
+  esac
+  return 1
+}
+
+# name_is_tool NAME — true when the name beside the address reads as a tool
+# rather than as a person. This one ignores the address deliberately: an
+# assistant that commits through somebody's allow-listed account still signs
+# the history with its own name. A person whose name genuinely collides — a
+# Jean-Claude, a Gemini — is exempted by a `name:` entry, and nothing else
+# gets past it.
+name_is_tool() {
+  local name word re
+  name="$(lower "$(trim "$1")")"
+  [ -n "${name}" ] && ! list_has "${name}" "${allow_names}" || return 1
+  case "${name}" in
+    *"cursor agent"* | *"background agent"* | *"claude code"* | *"ai assistant"* | *"ai agent"* | *"github copilot"* | *openai* | *anthropic* | *"language model"*)
+      return 0
+      ;;
+  esac
+  for word in ${TOOL_NAME_WORDS}; do
+    re="(^|[^a-z0-9])${word}($|[^a-z0-9])"
+    if [[ "${name}" =~ $re ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# --- the footer patterns ------------------------------------------------------
+
+# opens_with LOWERED PHRASE — true when the line opens with PHRASE once the
+# markdown and punctuation in front of it are stripped: "[cursor agent] …",
+# "- cursor agent", "**Cursor Agent**".
+opens_with() {
+  local text="$1"
+  while [ -n "${text}" ]; do
+    case "${text}" in
+      [a-z0-9]*) break ;;
+      *) text="${text#?}" ;;
+    esac
+  done
+  case "${text}" in
+    "$2"*) return 0 ;;
+  esac
+  return 1
+}
+
+# forbidden_reason LINE — prints why this line is an assistant footer and
+# returns 0 when it is one.
+forbidden_reason() {
+  local lowered
+  lowered="$(lower "$1")"
+
+  # A footer stands on its own line. A sentence that names a tool in passing
+  # is prose — the commit that added this rule names three of them — so these
+  # two are matched at the head of a line only. Every machine-written form
+  # reaches another rule anyway: as a trailer address, inside a link, or after
+  # "Generated with".
+  if opens_with "${lowered}" "cursor agent" || opens_with "${lowered}" "background agent"; then
+    printf '%s' "agent attribution"
+    return 0
+  fi
+  if opens_with "${lowered}" "claude code"; then
+    printf '%s' "assistant attribution"
+    return 0
+  fi
+
+  case "${lowered}" in
+    *cursor_agent_pr_body_begin* | *cursor_agent_pr_body_end*)
+      printf '%s' "Cursor agent pull request body marker"
+      return 0
+      ;;
+    *cursor.com/agents* | *cursor.com/background-agent*)
+      printf '%s' "link to an agent run"
+      return 0
+      ;;
+    *claude.ai/code* | *anthropic.com/claude*)
+      printf '%s' "link to an assistant product page"
+      return 0
+      ;;
+    *cursoragent@cursor.com*)
+      printf '%s' "agent commit address"
+      return 0
+      ;;
+    *"open in cursor"* | *"open in web"*)
+      printf '%s' "\"Open in …\" agent footer"
+      return 0
+      ;;
+    *"🤖"*)
+      printf '%s' "robot-emoji attribution footer"
+      return 0
+      ;;
+  esac
+
+  # "Generated with" on its own is ordinary English — screenshots are generated
+  # with Playwright. It is a footer only when it names the thing that wrote it.
+  case "${lowered}" in
+    *"generated with"* | *"generated by"*)
+      case "${lowered}" in
+        *claude* | *cursor* | *codex* | *copilot* | *chatgpt* | *gpt-* | *gemini* | *anthropic* | *openai*)
+          printf '%s' "\"generated with\" assistant footer"
+          return 0
+          ;;
+      esac
+      ;;
+  esac
+
+  if [[ "${lowered}" =~ ${TRAILER_RE} ]]; then
+    printf '%s' "assistant attribution trailer"
+    return 0
+  fi
+
+  return 1
+}
+
+# --- the checks ---------------------------------------------------------------
+
+check_identity() {
+  local sha="${1:0:12}" author_email="$2" committer_email="$3" author_login="$4" committer_login="$5"
+  local author_name="$6" committer_name="$7"
+  if ! login_allowed "${author_login}" && ! email_allowed "${author_email}" author; then
+    report "${sha}" "author <${author_email:-unset}> is not on the attribution allow-list (${allow_file})"
+  fi
+  if ! login_allowed "${committer_login}" && ! email_allowed "${committer_email}" committer; then
+    report "${sha}" "committer <${committer_email:-unset}> is not on the attribution allow-list (${allow_file})"
+  fi
+  if name_is_tool "${author_name}"; then
+    report "${sha}" "author name \"${author_name}\" reads as a tool, not a person — exempt a real person with a name: entry in ${allow_file}"
+  fi
+  if name_is_tool "${committer_name}"; then
+    report "${sha}" "committer name \"${committer_name}\" reads as a tool, not a person — exempt a real person with a name: entry in ${allow_file}"
+  fi
+}
+
+# check_message_line SHA LINE — one line of one commit message.
+check_message_line() {
+  local sha="${1:0:12}" text="$2" lowered value email reason
+  lowered="$(lower "${text}")"
+
+  if [[ "${lowered}" =~ ${COAUTHOR_RE} ]]; then
+    value="$(trim "${text#*:}")"
+    email=""
+    if [[ "${value}" =~ ${EMAIL_RE} ]]; then
+      email="$(lower "${BASH_REMATCH[1]}")"
+    fi
+    if [ -z "${email}" ]; then
+      report "${sha}" "Co-authored-by trailer with no address: ${value}"
+    elif ! email_allowed "${email}" author; then
+      report "${sha}" "Co-authored-by: <${email}> is not on the attribution allow-list"
+    fi
+    return 0
+  fi
+
+  if reason="$(forbidden_reason "${text}")"; then
+    report "${sha}" "commit message: ${reason} — \"$(trim "${text}")\""
+  fi
+}
+
+# check_text LABEL NUMBERED — reads the text from stdin. A title is one line,
+# so its line number says nothing; a body's does.
+check_text() {
+  local label="$1" numbered="$2" line n=0 reason where
+  while IFS= read -r line || [ -n "${line}" ]; do
+    n=$((n + 1))
+    if reason="$(forbidden_reason "${line}")"; then
+      where="${reason}"
+      [ "${numbered}" = true ] && where="${reason} on line ${n}"
+      report "${label}" "${where} — \"$(trim "${line}")\""
+    fi
+  done
+}
+
+# --- input --------------------------------------------------------------------
+
+# A page of `gh api --paginate` is its own JSON array; `jq -s add` makes them
+# one. A single-array fixture file goes through unchanged.
+commits_json() {
+  if [ -n "${commits_file}" ]; then
+    [ -f "${commits_file}" ] || die "${commits_file} does not exist"
+    jq -s 'add // []' "${commits_file}"
+    return
+  fi
+  [ -n "${repo}" ] || die "no repository — pass -R OWNER/REPO or set GITHUB_REPOSITORY"
+  [ -n "${pr}" ] || die "no pull request number — pass --pr N"
+  command -v gh >/dev/null 2>&1 || die "gh is required to read the commits"
+  gh api "repos/${repo}/pulls/${pr}/commits" --paginate | jq -s 'add // []'
+}
+
+# Fills pr_title and pr_body from the event payload, then the API, then the
+# files given on the command line — later sources win.
+load_pull_request_text() {
+  local json=""
+  if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "${GITHUB_EVENT_PATH}" ]; then
+    pr_title="$(jq -r '.pull_request.title // ""' "${GITHUB_EVENT_PATH}")"
+    pr_body="$(jq -r '.pull_request.body // ""' "${GITHUB_EVENT_PATH}")"
+    if [ "$(jq -r '.action // ""' "${GITHUB_EVENT_PATH}")" = "edited" ]; then
+      refresh_text=true
+    fi
+  fi
+  # On `edited` the payload is a snapshot of the edit that triggered the run;
+  # re-reading is what makes a second edit, to either field, still checked.
+  # A refresh that cannot happen is an error, never a pass on the stale
+  # payload: the edit that triggered the run is exactly what it would miss.
+  if [ "${refresh_text}" = true ]; then
+    if [ -z "${repo}" ] || [ -z "${pr}" ]; then
+      die "cannot re-read the pull request title and body without -R OWNER/REPO and --pr N"
+    fi
+    command -v gh >/dev/null 2>&1 || die "gh is required to re-read the pull request title and body"
+    json="$(gh api "repos/${repo}/pulls/${pr}")" ||
+      die "could not re-read the pull request title and body from the API"
+    pr_title="$(printf '%s' "${json}" | jq -r '.title // ""')" || die "the API answer for the pull request is not JSON"
+    pr_body="$(printf '%s' "${json}" | jq -r '.body // ""')" || die "the API answer for the pull request is not JSON"
+  fi
+  if [ -n "${title_file}" ]; then
+    [ -f "${title_file}" ] || die "${title_file} does not exist"
+    pr_title="$(cat "${title_file}")"
+  fi
+  if [ -n "${body_file}" ]; then
+    [ -f "${body_file}" ] || die "${body_file} does not exist"
+    pr_body="$(cat "${body_file}")"
+  fi
+}
+
+# --- main ---------------------------------------------------------------------
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -R | --repo)
+      repo="${2:-}"
+      shift 2
+      ;;
+    --pr)
+      pr="${2:-}"
+      shift 2
+      ;;
+    --commits-file)
+      commits_file="${2:-}"
+      shift 2
+      ;;
+    --allow-file)
+      allow_file="${2:-}"
+      shift 2
+      ;;
+    --title-file)
+      title_file="${2:-}"
+      shift 2
+      ;;
+    --body-file)
+      body_file="${2:-}"
+      shift 2
+      ;;
+    --commits-only)
+      check_text=false
+      shift
+      ;;
+    --refresh-text)
+      refresh_text=true
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "attribution-guard: unknown argument: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+command -v jq >/dev/null 2>&1 || die "jq is required but not installed"
+
+if [ -z "${pr}" ] && [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "${GITHUB_EVENT_PATH}" ]; then
+  pr="$(jq -r '.pull_request.number // ""' "${GITHUB_EVENT_PATH}")"
+fi
+
+load_allow_list
+
+commits="$(commits_json)" || die "could not read the pull request commits"
+if ! printf '%s' "${commits}" | jq -e 'type == "array"' >/dev/null 2>&1; then
+  die "the commits payload is not a JSON array"
+fi
+
+count="$(printf '%s' "${commits}" | jq 'length')"
+if [ "${count}" -eq 0 ]; then
+  die "the pull request has no commits — nothing to check, which is never right"
+fi
+
+# The fields are split on the unit separator, never a tab: a tab is IFS
+# whitespace, so two in a row collapse into one, and an absent author login
+# (an email GitHub cannot map to an account) would shift the names one slot to
+# the left and let a tool-named author through the name check.
+while IFS=$'\037' read -r kind sha f3 f4 f5 f6 f7 f8; do
+  case "${kind}" in
+    C) check_identity "${sha}" "${f3}" "${f4}" "${f5}" "${f6}" "${f7}" "${f8}" ;;
+    M) check_message_line "${sha}" "${f3}" ;;
+  esac
+done <<EOF
+$(printf '%s' "${commits}" | jq -r '
+  def f: (. // "") | tostring | gsub("\u001f"; " ");
+  .[] | . as $c
+  | ( [ "C", ($c.sha | f),
+        ($c.commit.author.email | f), ($c.commit.committer.email | f),
+        ($c.author.login | f), ($c.committer.login | f),
+        ($c.commit.author.name | f), ($c.commit.committer.name | f) ] | join("\u001f") ),
+    ( ($c.commit.message // "") | split("\n")[] | [ "M", ($c.sha | f), f ] | join("\u001f") )
+')
+EOF
+
+if [ "${check_text}" = true ]; then
+  load_pull_request_text
+  if [ -z "${pr_body}" ] && [ -z "${body_file}" ] && [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+    info "the pull request body is empty"
+  fi
+  if [ -n "${pr_title}" ]; then
+    check_text "PR title" false <<EOF
+${pr_title}
+EOF
+  fi
+  check_text "PR body" true <<EOF
+${pr_body}
+EOF
+fi
+
+if [ "${failures}" -gt 0 ]; then
+  cat >&2 <<'HINT'
+
+attribution-guard: the author of record is the human who owns the change.
+
+  PR text  — strip the footer from the title or the body, which touches
+             nothing else:
+               gh api -X PATCH repos/OWNER/REPO/pulls/N -f body="$(cat body.md)"
+               gh api -X PATCH repos/OWNER/REPO/pulls/N -f title="…"
+  commits  — a wrong author, committer, or trailer is in the history, and
+             fixing it rewrites it. That is the repository owner's call, and
+             the answer has to be an explicit yes before you run:
+               git rebase -i --exec 'git commit --amend --no-edit \
+                 --author="NAME <ADDRESS>" --reset-author' ORIGIN/BASE
+             then force-push the pull request branch only, never main.
+
+Allow an address deliberately by adding it to .github/attribution-allow.txt in
+its own reviewed commit. Never widen it to land a change.
+HINT
+  echo "attribution-guard: ${failures} violation(s) across ${count} commit(s)" >&2
+  exit 1
+fi
+
+info "${count} commit(s) and the pull request title and body carry no foreign attribution"

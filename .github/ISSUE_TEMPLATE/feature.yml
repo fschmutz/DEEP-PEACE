@@ -1,0 +1,57 @@
+name: Feature request
+description: Propose a change in behaviour or a new capability.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem before the solution. A request framed only as an
+        implementation hides the constraint that would have changed the design.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is hard, slow, or impossible today, and for whom.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What you want to happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Including doing nothing, and why that is not enough.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - Repository configuration (workflows, ownership, templates)
+        - Documentation / wiki
+        - Tooling or scripts
+        - Application behaviour
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: No secrets or customer data appear above.
+          required: true
