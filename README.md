@@ -17,7 +17,7 @@
 
 | Phone view |
 |---|
-| <img src="docs/screenshots/app.png" alt="The Deep Peace app on a phone: breathing circle reading Ready 20:00, four sound presets, duration buttons and a volume slider" width="300"> |
+| <img src="docs/screenshots/app.png" alt="The Deep Peace app on a phone: breathing circle reading Ready 20:00, EN/FR switch, four sound presets, Breathing/Steady switch, duration buttons and a volume slider" width="300"> |
 
 ## Contents
 
@@ -42,6 +42,9 @@ Open **https://fschmutz.github.io/DEEP-PEACE/** in Chrome or Safari, pick a soun
 | Om | 136.1 Hz | 7.83 Hz | 12 s |
 | Yoga nidra | 72 Hz | 2.5 Hz (delta) | 14 s |
 | Ocean breath | 96 Hz | 4 Hz | 11 s |
+
+- **Breathing / Steady** — Breathing (default) gives the binaural beat, a breath-paced swell and the in/out guide. Steady removes every variation: both ears get the same tone, the noise stays constant, no detune shimmer, and the circle stays still while the countdown runs. Works with every preset. The page remembers your choice.
+- **EN / FR** — the switch at the top translates the whole interface. The first visit follows the browser language, and the page remembers your choice.
 
 Timers: 5, 10, 20, 30, 45 or 60 minutes. Start fades in over 4 s, Stop fades out over 3 s.
 

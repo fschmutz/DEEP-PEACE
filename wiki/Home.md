@@ -17,7 +17,7 @@ on the Web Audio API, served by GitHub Pages at
 
 ## Screenshots
 
-![The Deep Peace app on a phone: breathing circle reading Ready 20:00, four sound presets, duration buttons and a volume slider](https://github.com/fschmutz/DEEP-PEACE/raw/main/docs/screenshots/app.png)
+![The Deep Peace app on a phone: breathing circle reading Ready 20:00, EN/FR switch, four sound presets, Breathing/Steady switch, duration buttons and a volume slider](https://github.com/fschmutz/DEEP-PEACE/raw/main/docs/screenshots/app.png)
 
 ## How this wiki works
 

@@ -27,13 +27,18 @@
   input[type=range]{width:100%;accent-color:var(--acc);height:28px}
   .go{width:100%;border:0;border-radius:16px;padding:16px;font:inherit;font-size:17px;font-weight:600;background:var(--acc);color:#0b1512}
   .go.stop{background:var(--card);color:var(--txt);border:1px solid var(--line)}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+  .seg button{border:0;background:none;color:var(--sub);font:inherit;font-size:13px;padding:7px 12px}
+  .seg button.on{background:var(--accs);color:var(--txt)}
+  .seg.wide{display:flex}.seg.wide button{flex:1;padding:10px 0;font-size:14px}
   .note{color:var(--sub);font-size:12px;text-align:center;margin-top:14px;line-height:1.5}
 </style>
 </head>
 <body>
 <main>
-  <h1>Deep Peace</h1>
-  <p class="sub">Low-frequency drone, binaural beat and soft breath. Use headphones.</p>
+  <div class="top"><h1>Deep Peace</h1><div class="seg" id="lang"><button data-l="en">EN</button><button data-l="fr">FR</button></div></div>
+  <p class="sub" id="sub"></p>
   <div class="circle-wrap">
     <svg viewBox="0 0 300 300" aria-hidden="true">
       <circle cx="150" cy="150" r="140" fill="none" stroke="#2a313c" stroke-width="1"/>
@@ -44,27 +49,42 @@
     </svg>
   </div>
   <div class="presets" id="presets"></div>
-  <div class="row"><label>Duration</label><div class="times" id="times"></div></div>
-  <div class="row"><label>Volume</label><input type="range" id="vol" min="0" max="1" step="0.01" value="0.6"></div>
-  <button class="go" id="go">Begin</button>
-  <p class="note">Keep this page open while it plays. On iPhone, switch off silent mode so sound comes through.</p>
+  <div class="row"><label id="lMode"></label><div class="seg wide" id="mode"><button data-m="breath"></button><button data-m="steady"></button></div></div>
+  <div class="row"><label id="lDur"></label><div class="times" id="times"></div></div>
+  <div class="row"><label id="lVol"></label><input type="range" id="vol" min="0" max="1" step="0.01" value="0.6"></div>
+  <button class="go" id="go"></button>
+  <p class="note" id="note"></p>
 </main>
 <script>
 const PRESETS=[
-  {id:'peace',name:'Deep peace',note:'108 Hz drone, harmonics up to 432 Hz, 6 Hz theta',base:108,beat:6,noise:.15,breath:10},
-  {id:'om',name:'Om',note:'136.1 Hz Om tone, 7.83 Hz beat',base:136.1,beat:7.83,noise:.08,breath:12},
-  {id:'nidra',name:'Yoga nidra',note:'72 Hz drone, 2.5 Hz delta, for deep rest',base:72,beat:2.5,noise:.2,breath:14},
-  {id:'ocean',name:'Ocean breath',note:'96 Hz drone, 4 Hz beat, ocean wash',base:96,beat:4,noise:.55,breath:11},
+  {id:'peace',base:108,beat:6,noise:.15,breath:10},
+  {id:'om',base:136.1,beat:7.83,noise:.08,breath:12},
+  {id:'nidra',base:72,beat:2.5,noise:.2,breath:14},
+  {id:'ocean',base:96,beat:4,noise:.55,breath:11},
 ];
+const I18N={
+ en:{sub:'Low-frequency drone, binaural beat and soft breath. Use headphones.',subS:'Low-frequency drone and soft, constant sound. No pulsing, no variation.',mode:'Sound',breath:'Breathing',steady:'Steady',dur:'Duration',vol:'Volume',begin:'Begin',stop:'Stop',ready:'Ready',inh:'Breathe in',exh:'Breathe out',still:'Steady',end:'Namaste',min:'min',
+  note:'Keep this page open while it plays. On iPhone, switch off silent mode so sound comes through.',
+  p:{peace:['Deep peace','108 Hz drone, harmonics up to 432 Hz, 6 Hz theta'],om:['Om','136.1 Hz Om tone, 7.83 Hz beat'],nidra:['Yoga nidra','72 Hz drone, 2.5 Hz delta, for deep rest'],ocean:['Ocean breath','96 Hz drone, 4 Hz beat, ocean wash']},
+  pS:{peace:'108 Hz drone, harmonics up to 432 Hz',om:'136.1 Hz Om tone',nidra:'72 Hz drone, for deep rest',ocean:'96 Hz drone, steady ocean wash'}},
+ fr:{sub:'Bourdon grave, battement binaural et souffle doux. Utilisez un casque.',subS:'Bourdon grave et son doux et constant. Sans pulsation, sans variation.',mode:'Son',breath:'Respiration',steady:'Stable',dur:'Durée',vol:'Volume',begin:'Commencer',stop:'Arrêter',ready:'Prêt',inh:'Inspirez',exh:'Expirez',still:'Stable',end:'Namaste',min:'min',
+  note:'Gardez cette page ouverte pendant l’écoute. Sur iPhone, désactivez le mode silencieux pour entendre le son.',
+  p:{peace:['Paix profonde','Bourdon 108 Hz, harmoniques jusqu’à 432 Hz, thêta 6 Hz'],om:['Om','Note Om 136,1 Hz, battement 7,83 Hz'],nidra:['Yoga nidra','Bourdon 72 Hz, delta 2,5 Hz, pour le repos profond'],ocean:['Souffle de l’océan','Bourdon 96 Hz, battement 4 Hz, ressac']},
+  pS:{peace:'Bourdon 108 Hz, harmoniques jusqu’à 432 Hz',om:'Note Om 136,1 Hz',nidra:'Bourdon 72 Hz, pour le repos profond',ocean:'Bourdon 96 Hz, ressac constant'}}
+};
+const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+let lang=store.get('dp-lang')||((navigator.language||'en').toLowerCase().startsWith('fr')?'fr':'en');
+let mode=store.get('dp-mode')==='steady'?'steady':'breath';
+const T=()=>I18N[lang], steady=()=>mode==='steady';
 const TIMES=[5,10,20,30,45,60];
 let preset=PRESETS[0], minutes=20, ctx=null, nodes=null, running=false, endAt=0, t0=0, raf=0, wake=null;
 const $=id=>document.getElementById(id);
 function renderPresets(){
-  $('presets').innerHTML=PRESETS.map(p=>`<button class="preset ${p===preset?'on':''}" data-id="${p.id}"><b>${p.name}</b><span>${p.note}</span></button>`).join('');
+  $('presets').innerHTML=PRESETS.map(p=>`<button class="preset ${p===preset?'on':''}" data-id="${p.id}"><b>${T().p[p.id][0]}</b><span>${steady()?T().pS[p.id]:T().p[p.id][1]}</span></button>`).join('');
   $('presets').querySelectorAll('button').forEach(b=>b.onclick=()=>{preset=PRESETS.find(p=>p.id===b.dataset.id);renderPresets();if(running){stop(true);start();}});
 }
 function renderTimes(){
-  $('times').innerHTML=TIMES.map(m=>`<button class="t ${m===minutes?'on':''}" data-m="${m}">${m} min</button>`).join('');
+  $('times').innerHTML=TIMES.map(m=>`<button class="t ${m===minutes?'on':''}" data-m="${m}">${m} ${T().min}</button>`).join('');
   $('times').querySelectorAll('button').forEach(b=>b.onclick=()=>{minutes=+b.dataset.m;renderTimes();if(running)endAt=performance.now()+minutes*60000;else $('clock').textContent=fmt(minutes*60);});
 }
 const fmt=s=>{s=Math.max(0,Math.ceil(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
@@ -77,14 +97,14 @@ function build(){
   const merger=ctx.createChannelMerger(2);
   const bg=ctx.createGain(); bg.gain.value=.22; merger.connect(bg); bg.connect(master);
   const L=ctx.createOscillator(), R=ctx.createOscillator();
-  L.frequency.value=p.base; R.frequency.value=p.base+p.beat;
+  L.frequency.value=p.base; R.frequency.value=steady()?p.base:p.base+p.beat;
   const lg=ctx.createGain(), rg=ctx.createGain(); lg.gain.value=rg.gain.value=1;
   L.connect(lg).connect(merger,0,0); R.connect(rg).connect(merger,0,1);
   const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=700; lp.Q.value=.5;
   const pad=ctx.createGain(); pad.gain.value=.12; lp.connect(pad).connect(master);
   const oscs=[L,R];
   [[1,.5],[1.5,.25],[2,.3],[3,.12],[4,.08]].forEach(([m,g],i)=>{
-    const o=ctx.createOscillator(); o.type=i%2?'triangle':'sine'; o.frequency.value=p.base*m; o.detune.value=(i-2)*3;
+    const o=ctx.createOscillator(); o.type=i%2?'triangle':'sine'; o.frequency.value=p.base*m; o.detune.value=steady()?0:(i-2)*3;
     const og=ctx.createGain(); og.gain.value=g; o.connect(og).connect(lp); oscs.push(o);
   });
   const len=ctx.sampleRate*4, buf=ctx.createBuffer(2,len,ctx.sampleRate);
@@ -93,17 +113,19 @@ function build(){
   const nf=ctx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=500;
   const ng=ctx.createGain(); ng.gain.value=p.noise*.5;
   ns.connect(nf).connect(ng).connect(master);
+  if(!steady()){
   const lfo=ctx.createOscillator(); lfo.frequency.value=1/p.breath;
   const lfoG=ctx.createGain(); lfoG.gain.value=p.noise*.45; lfo.connect(lfoG).connect(ng.gain);
   const lfoF=ctx.createGain(); lfoF.gain.value=250; lfo.connect(lfoF).connect(nf.frequency);
   oscs.push(lfo);
+  }
   oscs.forEach(o=>o.start(now)); ns.start(now); oscs.push(ns);
   nodes={master,oscs};
 }
 async function start(){
   build(); if(ctx.state==='suspended') await ctx.resume();
   running=true; t0=performance.now(); endAt=t0+minutes*60000;
-  $('go').textContent='Stop'; $('go').classList.add('stop');
+  $('go').textContent=T().stop; $('go').classList.add('stop');
   try{ if('wakeLock' in navigator) wake=await navigator.wakeLock.request('screen'); }catch(e){}
   loop();
 }
@@ -114,24 +136,35 @@ function stop(quick){
   master.gain.linearRampToValueAtTime(0,now+f);
   oscs.forEach(o=>{try{o.stop(now+f+.1)}catch(e){}});
   nodes=null; running=false; cancelAnimationFrame(raf);
-  $('go').textContent='Begin'; $('go').classList.remove('stop');
-  $('cue').textContent='Ready'; $('clock').textContent=fmt(minutes*60);
+  $('go').textContent=T().begin; $('go').classList.remove('stop');
+  $('cue').textContent=T().ready; $('clock').textContent=fmt(minutes*60);
   $('orb').setAttribute('r',60); $('glow').setAttribute('r',70);
   if(wake){wake.release().catch(()=>{});wake=null;}
 }
 function loop(){
   const t=performance.now(), left=(endAt-t)/1000;
-  if(left<=0){stop(false);$('cue').textContent='Namaste';return;}
-  const ph=((t-t0)/1000%preset.breath)/preset.breath, s=(1-Math.cos(ph*2*Math.PI))/2;
+  if(left<=0){stop(false);$('cue').textContent=T().end;return;}
+  if(steady()){$('orb').setAttribute('r',60);$('glow').setAttribute('r',70);$('cue').textContent=T().still;}
+  else{const ph=((t-t0)/1000%preset.breath)/preset.breath, s=(1-Math.cos(ph*2*Math.PI))/2;
   $('orb').setAttribute('r',55+60*s); $('glow').setAttribute('r',65+70*s);
-  $('cue').textContent=ph<.5?'Breathe in':'Breathe out';
+  $('cue').textContent=ph<.5?T().inh:T().exh;}
   $('clock').textContent=fmt(left);
   raf=requestAnimationFrame(loop);
 }
 $('go').onclick=()=>running?stop(false):start();
 $('vol').oninput=e=>{if(nodes){nodes.master.gain.cancelScheduledValues(ctx.currentTime);nodes.master.gain.setTargetAtTime(+e.target.value,ctx.currentTime,.1);}};
 document.addEventListener('visibilitychange',async()=>{if(running&&document.visibilityState==='visible'&&'wakeLock' in navigator){try{wake=await navigator.wakeLock.request('screen')}catch(e){}}});
-renderPresets(); renderTimes(); $('clock').textContent=fmt(minutes*60);
+function applyText(){
+  const t=T(); document.documentElement.lang=lang;
+  $('sub').textContent=steady()?t.subS:t.sub; $('lMode').textContent=t.mode; $('lDur').textContent=t.dur; $('lVol').textContent=t.vol; $('note').textContent=t.note;
+  $('go').textContent=running?t.stop:t.begin; if(!running&&$('cue').textContent!==I18N.en.end&&$('cue').textContent!==I18N.fr.end)$('cue').textContent=t.ready;
+  $('lang').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.l===lang));
+  $('mode').querySelectorAll('button').forEach(b=>{b.textContent=t[b.dataset.m];b.classList.toggle('on',b.dataset.m===mode);});
+  renderPresets(); renderTimes();
+}
+$('lang').querySelectorAll('button').forEach(b=>b.onclick=()=>{lang=b.dataset.l;store.set('dp-lang',lang);applyText();});
+$('mode').querySelectorAll('button').forEach(b=>b.onclick=()=>{if(mode===b.dataset.m)return;mode=b.dataset.m;store.set('dp-mode',mode);applyText();if(running){const e=endAt;stop(true);start().then(()=>{endAt=e;});}});
+applyText(); $('clock').textContent=fmt(minutes*60);
 </script>
 </body>
 </html>
